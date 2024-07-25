@@ -13,10 +13,10 @@ const SELECTED_PLACES = prevStoredIds.map((id) =>
 );
 
 function App() {
-  const modal = useRef();
   const selectedPlace = useRef(); //useRef hook instead of useEffect is used because it doesn't effect the UI
   const [availbalePlaces, setAvailablePlaces] = useState([]);
   const [pickedPlaces, setPickedPlaces] = useState(SELECTED_PLACES);
+  const [isModelOpen, setIsModelOpen] = useState(false);
 
   // to get current location and display them in sorted order
   useEffect(() => {
@@ -31,12 +31,12 @@ function App() {
   }, []);
 
   function handleStartRemovePlace(id) {
-    modal.current.open();
+    setIsModelOpen(true);
     selectedPlace.current = id;
   }
 
   function handleStopRemovePlace() {
-    modal.current.close();
+    setIsModelOpen(false);
   }
 
   function handleSelectPlace(id) {
@@ -67,12 +67,12 @@ function App() {
         storedIds.filter((placeId) => placeId !== selectedPlace.current)
       )
     );
-    modal.current.close();
+    setIsModelOpen(false);
   }
 
   return (
     <>
-      <Modal ref={modal}>
+      <Modal open={isModelOpen}>
         <DeleteConfirmation
           onCancel={handleStopRemovePlace}
           onConfirm={handleRemovePlace}
