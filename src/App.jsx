@@ -6,11 +6,17 @@ import Modal from "./components/Modal.jsx";
 import DeleteConfirmation from "./components/DeleteConfirmation.jsx";
 import logoImg from "./assets/logo.png";
 
+// To load localStorage data which contains previous data
+const prevStoredIds = JSON.parse(localStorage.getItem("selectedPlaces")) || [];
+const SELECTED_PLACES = prevStoredIds.map((id) =>
+  AVAILABLE_PLACES.find((place) => place.id == id)
+);
+
 function App() {
   const modal = useRef();
   const selectedPlace = useRef(); //useRef hook instead of useEffect is used because it doesn't effect the UI
   const [availbalePlaces, setAvailablePlaces] = useState([]);
-  const [pickedPlaces, setPickedPlaces] = useState([]);
+  const [pickedPlaces, setPickedPlaces] = useState(SELECTED_PLACES);
 
   // to get current location and display them in sorted order
   useEffect(() => {
@@ -41,11 +47,25 @@ function App() {
       const place = AVAILABLE_PLACES.find((place) => place.id === id);
       return [place, ...prevPickedPlaces];
     });
+    const storedIds = JSON.parse(localStorage.getItem("selectedPlaces")) || [];
+    if (storedIds.indexOf(id) === -1) {
+      localStorage.setItem(
+        "selectedPlaces",
+        JSON.stringify([id, ...storedIds])
+      );
+    }
   }
 
   function handleRemovePlace() {
     setPickedPlaces((prevPickedPlaces) =>
       prevPickedPlaces.filter((place) => place.id !== selectedPlace.current)
+    );
+    const storedIds = JSON.parse(localStorage.getItem("selectedPlaces"));
+    localStorage.setItem(
+      "selectedPlaces",
+      JSON.stringify(
+        storedIds.filter((placeId) => placeId !== selectedPlace.current)
+      )
     );
     modal.current.close();
   }
