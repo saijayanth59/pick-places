@@ -10,3 +10,7 @@
 ## When not to use
 
 -> fetching data from localStorage
+
+# useCallBack()
+
+-> Use it when dependency is a function

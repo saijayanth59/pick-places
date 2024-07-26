@@ -1,4 +1,19 @@
+import { useEffect } from "react";
+import Progress from "./Progress";
+
 export default function DeleteConfirmation({ onConfirm, onCancel }) {
+  useEffect(() => {
+    console.log("Timer Started");
+    const timer = setTimeout(() => {
+      console.log("Time Ended");
+      onConfirm();
+    }, 3000);
+    return () => {
+      console.log("Cleaning Timer");
+      clearTimeout(timer);
+    };
+  }, [onConfirm]);
+
   return (
     <div id="delete-confirmation">
       <h2>Are you sure?</h2>
@@ -11,6 +26,7 @@ export default function DeleteConfirmation({ onConfirm, onCancel }) {
           Yes
         </button>
       </div>
+      <Progress />
     </div>
   );
 }
