@@ -1,78 +1,78 @@
-import { useRef, useState, useEffect, useCallback } from "react";
-import { sortPlacesByDistance } from "./loc.js";
+import { useRef, useState, useCallback } from "react";
+
 import Places from "./components/Places.jsx";
-import { AVAILABLE_PLACES } from "./data.js";
 import Modal from "./components/Modal.jsx";
 import DeleteConfirmation from "./components/DeleteConfirmation.jsx";
 import logoImg from "./assets/logo.png";
-
-// To load localStorage data which contains previous data
-const prevStoredIds = JSON.parse(localStorage.getItem("selectedPlaces")) || [];
-const SELECTED_PLACES = prevStoredIds.map((id) =>
-  AVAILABLE_PLACES.find((place) => place.id == id)
-);
+import AvailablePlaces from "./components/AvailablePlaces.jsx";
+import { Toaster } from "react-hot-toast";
+import axios from "axios";
+import toast from "react-hot-toast";
 
 function App() {
-  const selectedPlace = useRef(); //useRef hook instead of useEffect is used because it doesn't effect the UI
-  const [availbalePlaces, setAvailablePlaces] = useState([]);
-  const [pickedPlaces, setPickedPlaces] = useState(SELECTED_PLACES);
-  const [isModelOpen, setIsModelOpen] = useState(false);
+  const selectedPlace = useRef();
 
-  // to get current location and display them in sorted order
-  useEffect(() => {
-    navigator.geolocation.getCurrentPosition((pos) => {
-      const sortedPlaces = sortPlacesByDistance(
-        AVAILABLE_PLACES,
-        pos.coords.latitude,
-        pos.coords.longitude
-      );
-      setAvailablePlaces(sortedPlaces);
-    });
-  }, []);
+  const [userPlaces, setUserPlaces] = useState([]);
 
-  function handleStartRemovePlace(id) {
-    setIsModelOpen(true);
-    selectedPlace.current = id;
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+
+  function handleStartRemovePlace(place) {
+    setModalIsOpen(true);
+    selectedPlace.current = place;
   }
 
   function handleStopRemovePlace() {
-    setIsModelOpen(false);
+    setModalIsOpen(false);
   }
 
-  function handleSelectPlace(id) {
-    setPickedPlaces((prevPickedPlaces) => {
-      if (prevPickedPlaces.some((place) => place.id === id)) {
+  function handleSelectPlace(selectedPlace) {
+    setUserPlaces((prevPickedPlaces) => {
+      if (!prevPickedPlaces) {
+        prevPickedPlaces = [];
+      }
+      if (prevPickedPlaces.some((place) => place.id === selectedPlace.id)) {
         return prevPickedPlaces;
       }
-      const place = AVAILABLE_PLACES.find((place) => place.id === id);
-      return [place, ...prevPickedPlaces];
+      return [selectedPlace, ...prevPickedPlaces];
     });
-    const storedIds = JSON.parse(localStorage.getItem("selectedPlaces")) || [];
-    if (storedIds.indexOf(id) === -1) {
-      localStorage.setItem(
-        "selectedPlaces",
-        JSON.stringify([id, ...storedIds])
-      );
-    }
+
+    const postUserPlaces = async (places) => {
+      try {
+        const res = await axios.put(
+          "http://localhost:3000/user-places",
+          JSON.stringify({ places }),
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        console.log(res);
+        toast.success(res.data.message, {
+          position: "top-right",
+        });
+      } catch (error) {
+        console.log(error);
+        toast.error("Error to update user places");
+      }
+    };
+    postUserPlaces(userPlaces);
   }
 
-  const handleRemovePlace = useCallback(function handleRemovePlace() {
-    setPickedPlaces((prevPickedPlaces) =>
-      prevPickedPlaces.filter((place) => place.id !== selectedPlace.current)
+  const handleRemovePlace = useCallback(async function handleRemovePlace() {
+    setUserPlaces((prevPickedPlaces) =>
+      prevPickedPlaces.filter((place) => place.id !== selectedPlace.current.id)
     );
-    const storedIds = JSON.parse(localStorage.getItem("selectedPlaces"));
-    localStorage.setItem(
-      "selectedPlaces",
-      JSON.stringify(
-        storedIds.filter((placeId) => placeId !== selectedPlace.current)
-      )
-    );
-    setIsModelOpen(false);
+
+    setModalIsOpen(false);
   }, []);
 
   return (
     <>
-      <Modal open={isModelOpen} onCancel={handleStopRemovePlace}>
+      <div>
+        <Toaster />
+      </div>
+      <Modal open={modalIsOpen} onClose={handleStopRemovePlace}>
         <DeleteConfirmation
           onCancel={handleStopRemovePlace}
           onConfirm={handleRemovePlace}
@@ -90,16 +90,12 @@ function App() {
       <main>
         <Places
           title="I'd like to visit ..."
-          fallbackText={"Select the places you would like to visit below."}
-          places={pickedPlaces}
+          fallbackText="Select the places you would like to visit below."
+          places={userPlaces}
           onSelectPlace={handleStartRemovePlace}
         />
-        <Places
-          title="Available Places"
-          fallbackText={"Places Loading ..."}
-          places={availbalePlaces}
-          onSelectPlace={handleSelectPlace}
-        />
+
+        <AvailablePlaces onSelectPlace={handleSelectPlace} />
       </main>
     </>
   );
